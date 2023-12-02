@@ -1,5 +1,5 @@
 package io.dylemma.advent
-package year2022
+package puzzles
 
 import util.Puzzle
 import util.Matching._

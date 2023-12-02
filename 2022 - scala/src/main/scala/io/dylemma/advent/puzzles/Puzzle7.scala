@@ -1,4 +1,4 @@
-package io.dylemma.advent.year2022
+package io.dylemma.advent.puzzles
 
 import io.dylemma.advent.util.Inputs
 

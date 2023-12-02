@@ -1,5 +1,5 @@
 package io.dylemma.advent
-package year2022
+package puzzles
 
 import scala.annotation.tailrec
 import scala.collection.mutable

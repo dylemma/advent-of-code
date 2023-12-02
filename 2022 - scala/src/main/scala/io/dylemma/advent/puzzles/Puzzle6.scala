@@ -1,4 +1,4 @@
-package io.dylemma.advent.year2022
+package io.dylemma.advent.puzzles
 
 import io.dylemma.advent.util.Puzzle
 
@@ -11,7 +11,7 @@ object Puzzle6 extends Puzzle {
 	def part1(): String = {
 		findStartMarker(4, inputLines.head.iterator).toString
 
-		
+
 	}
 	def part2(): String = {
 		findStartMarker(14, inputLines.head.iterator).toString
