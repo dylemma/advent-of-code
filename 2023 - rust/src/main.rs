@@ -4,6 +4,7 @@ use crate::helper::{GenResult, puzzle_input_path};
 
 mod puzzle01;
 mod helper;
+mod puzzle02;
 
 fn main() -> GenResult<()> {
 
@@ -30,6 +31,7 @@ fn main() -> GenResult<()> {
 
     match puzzle_num {
         1 => puzzle01::run(&input_path),
+        2 => puzzle02::run(&input_path),
         _ => Ok(()),
     }
 }
