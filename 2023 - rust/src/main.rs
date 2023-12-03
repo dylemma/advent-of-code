@@ -2,9 +2,10 @@ use std::env;
 
 use crate::helper::{GenResult, puzzle_input_path};
 
-mod puzzle01;
 mod helper;
+mod puzzle01;
 mod puzzle02;
+mod puzzle03;
 
 fn main() -> GenResult<()> {
 
@@ -32,6 +33,7 @@ fn main() -> GenResult<()> {
     match puzzle_num {
         1 => puzzle01::run(&input_path),
         2 => puzzle02::run(&input_path),
+        3 => puzzle03::run(&input_path),
         _ => Ok(()),
     }
 }
