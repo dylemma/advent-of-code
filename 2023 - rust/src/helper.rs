@@ -10,3 +10,7 @@ pub fn puzzle_input_path(puzzle_num: u8) -> GenResult<PathBuf> {
     dir.push(format!("{:0>2}.txt", puzzle_num));
     Ok(dir)
 }
+
+pub fn parse_u32(s: &str) -> Result<u32, String> {
+    s.parse::<u32>().map_err(|e| e.to_string())
+}
