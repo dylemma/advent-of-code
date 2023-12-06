@@ -14,3 +14,7 @@ pub fn puzzle_input_path(puzzle_num: u8) -> GenResult<PathBuf> {
 pub fn parse_u32(s: &str) -> Result<u32, String> {
     s.parse::<u32>().map_err(|e| e.to_string())
 }
+
+pub fn parse_u64(s: &str) -> Result<u64, String> {
+    s.parse::<u64>().map_err(|e| format!("Couldn't parse u64 from {} ({})", s, e.to_string()))
+}
