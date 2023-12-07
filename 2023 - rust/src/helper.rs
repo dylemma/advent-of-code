@@ -1,5 +1,6 @@
 use std::env;
 use std::error::Error;
+use std::io::{BufRead, Lines};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -29,10 +30,22 @@ pub fn print_elapsed(description: &str, time: SystemTime) {
 macro_rules! timed {
     ($label:expr, $body:block) => {
         {
-            let start = SystemTime::now();
+            let start = std::time::SystemTime::now();
             let result = $body;
             crate::helper::print_elapsed($label, start);
             result
         }
+    }
+}
+
+pub trait EzLines {
+    fn expect_next_line(&mut self) -> Result<String, String>;
+}
+
+impl <B: BufRead> EzLines for Lines<B> {
+    fn expect_next_line(&mut self) -> Result<String, String> {
+        self.next()
+            .ok_or("missing expected line")?
+            .map_err(|io_err| io_err.to_string())
     }
 }
