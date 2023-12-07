@@ -22,10 +22,13 @@ fn main() -> GenResult<()> {
         .ok_or("Expected a puzzle number")?
         .parse::<u8>()?;
 
-    // assert that no other arguments were passed
-    let _ = (
-        if args.next().is_none() { Ok(()) } else { Err("Too many arguments") }
-    )?;
+    let mut debug_on = false;
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--debug" => { debug_on = true },
+            other => Err(format!("Unexpected argument '{}'", other))?,
+        }
+    }
 
     let input_path = puzzle_input_path(puzzle_num)?;
     println!("get input from \"{}\"", input_path.display());
@@ -37,7 +40,7 @@ fn main() -> GenResult<()> {
         2 => puzzle02::run(&input_path),
         3 => puzzle03::run(&input_path),
         4 => puzzle04::run(&input_path),
-        5 => puzzle05::run(&input_path),
+        5 => puzzle05::run(&input_path, debug_on),
         _ => Ok(()),
     }
 }

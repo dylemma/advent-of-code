@@ -1,6 +1,7 @@
 use std::env;
 use std::error::Error;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 pub type GenResult<A> = Result<A, Box<dyn Error>>;
 
@@ -17,4 +18,21 @@ pub fn parse_u32(s: &str) -> Result<u32, String> {
 
 pub fn parse_u64(s: &str) -> Result<u64, String> {
     s.parse::<u64>().map_err(|e| format!("Couldn't parse u64 from {} ({})", s, e.to_string()))
+}
+
+pub fn print_elapsed(description: &str, time: SystemTime) {
+    let elapsed = time.elapsed().unwrap().as_micros();
+    println!("{} in {} μs", description, elapsed);
+}
+
+#[macro_export]
+macro_rules! timed {
+    ($label:expr, $body:block) => {
+        {
+            let start = SystemTime::now();
+            let result = $body;
+            crate::helper::print_elapsed($label, start);
+            result
+        }
+    }
 }
