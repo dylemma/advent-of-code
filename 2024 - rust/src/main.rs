@@ -1,16 +1,54 @@
 mod helper;
+mod puzzle01;
 
 use crate::helper::*;
+use env_logger::Builder;
+use log::{debug, error, info, LevelFilter};
 use std::env;
 
 fn main() -> GenResult<()> {
-    println!("Hello, world!");
+    let mut args = env::args().skip(1);
 
-    let cwd = env::current_dir().unwrap();
-    println!("Running in {}", cwd.display());
+    let puzzle_num = args.next().ok_or("Expected puzzle number")?.parse::<u32>()?;
 
-    let _ = get_input(1)?;
-    let _ = get_input(2)?;
+    let mut log_level_filter = LevelFilter::Info;
+    let mut is_example_input = false;
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--debug" => {
+                log_level_filter = LevelFilter::Debug;
+            }
+            "--trace" => {
+                log_level_filter = LevelFilter::Trace;
+            }
+            "--example" => {
+                is_example_input = true;
+            },
+            other => Err(format!("Unexpected argument: {}", other))?,
+        }
+    }
+
+    // initialize global logger to enable `info!` etc
+    Builder::new()
+        .filter(None, log_level_filter)
+        .format_module_path(false)
+        .format_target(false)
+        .init();
+
+    info!("Running puzzle {}", puzzle_num);
+
+    let puzzle_input_path = if is_example_input {
+        env::current_dir()?.join(format!("example_inputs/{}.txt", puzzle_num))
+    } else {
+        get_input(puzzle_num)?
+    };
+    debug!("Input path: {:?}", puzzle_input_path);
+
+    match puzzle_num {
+        1 => info!("TODO"),
+        _ => error!("That puzzle isn't solved yet"),
+    }
 
     Ok(())
 }
