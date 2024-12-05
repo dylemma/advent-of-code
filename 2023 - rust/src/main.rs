@@ -9,6 +9,7 @@ mod puzzle03;
 mod puzzle04;
 mod puzzle05;
 mod puzzle06;
+mod puzzle07;
 
 fn main() -> GenResult<()> {
 
@@ -43,6 +44,7 @@ fn main() -> GenResult<()> {
         4 => puzzle04::run(&input_path),
         5 => puzzle05::run(&input_path, debug_on),
         6 => puzzle06::run(&input_path, debug_on),
+        7 => puzzle07::run(&input_path, debug_on),
         _ => Ok(()),
     }
 }
