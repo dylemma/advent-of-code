@@ -46,7 +46,7 @@ fn main() -> GenResult<()> {
     debug!("Input path: {:?}", puzzle_input_path);
 
     match puzzle_num {
-        1 => info!("TODO"),
+        1 => puzzle01::run(&puzzle_input_path)?,
         _ => error!("That puzzle isn't solved yet"),
     }
 
