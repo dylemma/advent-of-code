@@ -5,6 +5,7 @@ mod puzzle03;
 mod puzzle04;
 mod puzzle05;
 mod puzzle06;
+mod geometry;
 
 use crate::helper::*;
 use env_logger::Builder;

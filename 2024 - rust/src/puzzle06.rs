@@ -1,16 +1,26 @@
+use crate::geometry::{Cardinal, CardinalSet, CharGrid, Grid, RenderTileChar};
 use crate::helper::GenResult;
-use colored::Colorize;
+use colored::{ColoredString, Colorize};
 use log::{info, warn};
-use std::fmt::{Debug, Formatter, Write};
+use std::collections::HashSet;
+use std::fmt::Debug;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 
 pub fn run(input_path: &PathBuf) -> GenResult<()> {
-    let file = File::open(input_path)?;
-    let mut reader = BufReader::new(file);
-    let mut patrol_state: PatrolState = PatrolState::parse(&mut reader)?;
-    info!("Initial Grid:\n{:?}", patrol_state);
+    let (initial_grid, initial_guard) = {
+        let file = File::open(input_path)?;
+        let mut reader = BufReader::new(file);
+        parse_input(&mut reader)?
+    };
+
+    let mut patrol_state: PatrolState =
+        PatrolState::new(initial_grid.clone(), initial_guard.clone());
+    info!(
+        "Initial Grid:\n{}",
+        CharGrid(&patrol_state.grid, WithGuard(patrol_state.guard))
+    );
 
     let mut num_steps = 0u32;
     while patrol_state.guard.is_some() {
@@ -23,10 +33,14 @@ pub fn run(input_path: &PathBuf) -> GenResult<()> {
         patrol_state.advance();
     }
 
-    info!("Grid after {} steps:\n{:?}", num_steps, patrol_state);
+    info!(
+        "Grid after {} steps:\n{}",
+        num_steps,
+        CharGrid(&patrol_state.grid, WithGuard(patrol_state.guard))
+    );
     info!(
         "Visited {} tiles",
-        format!("{}", patrol_state.grid.num_visited().to_string().yellow())
+        format!("{}", patrol_state.num_traversed().to_string().yellow())
     );
 
     Ok(())
@@ -34,87 +48,199 @@ pub fn run(input_path: &PathBuf) -> GenResult<()> {
 
 #[derive(Copy, Clone)]
 enum TileState {
-    Empty,
     Obstacle,
-    Visited,
-    Occupied,
+    ArtificialObstacle,
+    Empty,
+    Traversed(CardinalSet),
 }
 
-#[derive(Copy, Clone, Debug)]
-enum Heading {
-    North,
-    East,
-    South,
-    West,
-}
-
-impl Heading {
-    fn turn_right(&self) -> Heading {
+impl TileState {
+    fn mark_traversed(&mut self, heading: Cardinal) {
         match self {
-            Heading::North => Heading::East,
-            Heading::East => Heading::South,
-            Heading::South => Heading::West,
-            Heading::West => Heading::North,
+            TileState::Traversed(cardinals) => {
+                *cardinals += heading;
+            }
+            TileState::Empty => {
+                *self = TileState::Traversed(CardinalSet::default() + heading);
+            }
+            TileState::Obstacle | TileState::ArtificialObstacle => {
+                panic!("Attempted to mark an obstacle as traversed");
+            }
+        }
+    }
+    fn is_traversable(&self) -> bool {
+        match self {
+            TileState::Traversed(_) => true,
+            TileState::Empty => true,
+            TileState::Obstacle => false,
+            TileState::ArtificialObstacle => false,
         }
     }
 }
 
-impl Into<(isize, isize)> for Heading {
-    fn into(self) -> (isize, isize) {
-        match self {
-            Heading::North => (0, -1),
-            Heading::East => (1, 0),
-            Heading::South => (0, 1),
-            Heading::West => (-1, 0),
-        }
-    }
-}
+struct HeadingArrow(Cardinal);
 
-impl TryFrom<char> for Heading {
+impl TryFrom<char> for HeadingArrow {
     type Error = ();
     fn try_from(value: char) -> Result<Self, Self::Error> {
         match value {
-            '^' => Ok(Heading::North),
-            '>' => Ok(Heading::East),
-            'v' => Ok(Heading::South),
-            '<' => Ok(Heading::West),
+            '^' => Ok(HeadingArrow(Cardinal::North)),
+            '>' => Ok(HeadingArrow(Cardinal::East)),
+            'v' => Ok(HeadingArrow(Cardinal::South)),
+            '<' => Ok(HeadingArrow(Cardinal::West)),
             _ => Err(()),
         }
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+impl From<HeadingArrow> for char {
+    fn from(value: HeadingArrow) -> Self {
+        match value.0 {
+            Cardinal::North => '^',
+            Cardinal::East => '>',
+            Cardinal::South => 'v',
+            Cardinal::West => '<',
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 struct Guard {
-    heading: Heading,
+    heading: Cardinal,
     pos: (usize, usize),
 }
 
-struct Grid {
-    tiles: Vec<Vec<TileState>>,
+struct PatrolState {
+    grid: Grid<TileState>,
+    guard: Option<Guard>,
+    corners: HashSet<Guard>,
+    detected_loop: bool,
 }
 
-impl Grid {
-    fn get(&self, x: usize, y: usize) -> Option<TileState> {
-        let row = self.tiles.get(y)?;
-        row.get(x).cloned()
-    }
-
-    fn set(&mut self, x: usize, y: usize, tile: TileState) -> bool {
-        if let Some(row) = self.tiles.get_mut(y) {
-            if let Some(cell) = row.get_mut(x) {
-                *cell = tile;
-                return true;
+/// Used to enable fancy debugging of a `Grid<TileState>` when used with
+/// `CharGrid(&grid, WithGuard(guard))`
+struct WithGuard(Option<Guard>);
+impl RenderTileChar<TileState> for WithGuard {
+    fn render_tile_char(&self, tile: &TileState, x: usize, y: usize) -> ColoredString {
+        if let Some(Guard {
+            pos: (gx, gy),
+            heading,
+        }) = self.0
+        {
+            if gx == x && gy == y {
+                // render the guard heading arrow instead of the tile character
+                let c = char::from(HeadingArrow(heading));
+                return c.to_string().green();
             }
         }
-        false
+
+        match tile {
+            TileState::ArtificialObstacle => "O".cyan(),
+            TileState::Obstacle => "#".white(),
+            TileState::Empty => ".".bright_black(),
+            TileState::Traversed(cardinals) => cardinals.to_box_drawing_char().to_string().yellow(),
+        }
+    }
+}
+
+fn parse_input<T: BufRead>(reader: &mut T) -> GenResult<(Grid<TileState>, Guard)> {
+    let mut rows = Vec::new();
+    let mut current_row: usize = 0;
+    let mut guard = None;
+
+    for line in reader.lines() {
+        let line = line?;
+        let mut row = Vec::new();
+        for (col, char) in line.chars().enumerate() {
+            match char {
+                '.' => row.push(TileState::Empty),
+                '#' => row.push(TileState::Obstacle),
+                other => match HeadingArrow::try_from(other) {
+                    Ok(HeadingArrow(heading)) => {
+                        row.push(TileState::Empty);
+                        guard = Some(Guard {
+                            heading,
+                            pos: (col, current_row),
+                        });
+                    }
+                    Err(_) => {
+                        Err(format!("Unrecognized character: '{}'", other))?;
+                    }
+                },
+            }
+        }
+        rows.push(row);
+        current_row += 1;
     }
 
-    fn num_visited(&self) -> u32 {
+    Ok((Grid { rows }, guard.ok_or("guard not found")?))
+}
+
+impl PatrolState {
+    fn new(grid: Grid<TileState>, guard: Guard) -> Self {
+        PatrolState {
+            grid,
+            guard: Some(guard),
+            corners: HashSet::new(),
+            detected_loop: false,
+        }
+    }
+
+    fn advance(&mut self) {
+        if let PatrolState {
+            grid,
+            guard: Some(Guard {
+                heading,
+                pos: (x, y),
+            }),
+            corners,
+            detected_loop,
+        } = self
+        {
+            if let Some((can_enter_next_tile, x2, y2)) = next_guard_pos((*x, *y), *heading, grid) {
+                if can_enter_next_tile {
+                    // Guard will enter a tile;
+                    // First, mark the tile they are leaving as having been traversed, via the direction they left.
+                    // Then, mark the tile they are entering as having traversed via the opposite direction
+                    // (e.g. while heading north, they enter a tile via its south cardinal).
+                    // Finally, update the guard's position in memory.
+                    if let Some(prev_tile) = grid.get_mut(*x, *y) {
+                        prev_tile.mark_traversed(*heading);
+                    }
+                    grid.get_mut(x2, y2)
+                        .unwrap() // safe because we already checked that a tile is there
+                        .mark_traversed(heading.opposite());
+                    *x = x2;
+                    *y = y2;
+                } else {
+                    // Guard encountered an obstacle;
+                    // They will turn right, but not update their position during this step
+                    let corner = Guard {
+                        heading: *heading,
+                        pos: (*x, *y),
+                    };
+                    if corners.contains(&corner) {
+                        info!("Detected loop @ {:?}", corner);
+                        *detected_loop = true;
+                    } else {
+                        corners.insert(corner);
+                    }
+                    *heading = heading.turn_right();
+                }
+            } else {
+                // guard walked off the map!
+                grid.get_mut(*x, *y).unwrap().mark_traversed(*heading);
+                self.guard = None
+            }
+        }
+    }
+
+    fn num_traversed(&self) -> u32 {
         let mut count = 0;
-        for row in &self.tiles {
+        for row in &self.grid.rows {
             for cell in row {
                 match *cell {
-                    TileState::Visited => count += 1,
+                    TileState::Traversed(_) => count += 1,
                     _ => (),
                 }
             }
@@ -123,135 +249,14 @@ impl Grid {
     }
 }
 
-struct PatrolState {
-    grid: Grid,
-    guard: Option<Guard>,
-}
-
-impl Debug for PatrolState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for row in &self.grid.tiles {
-            for tile in row {
-                match *tile {
-                    TileState::Empty => write!(f, "{}", ".".bright_black())?,
-                    TileState::Obstacle => write!(f, "{}", "#".white())?,
-                    TileState::Visited => write!(f, "{}", "X".yellow())?,
-                    TileState::Occupied => {
-                        if let Some(Guard { heading, .. }) = self.guard {
-                            let char = match heading {
-                                Heading::North => "^",
-                                Heading::East => ">",
-                                Heading::South => "v",
-                                Heading::West => "<",
-                            };
-                            write!(f, "{}", char.green())?;
-                        } else {
-                            // invalid state; guard is None, but somehow tile is occupied
-                            write!(f, "{}", "?".red())?;
-                        }
-                    }
-                }
-            }
-            f.write_char('\n')?;
-        }
-
-        Ok(())
-    }
-}
-
-impl PatrolState {
-    fn parse<T: BufRead>(reader: &mut T) -> GenResult<Self> {
-        let mut guard_facing = Heading::North;
-        let mut rows = Vec::new();
-        let mut current_row: usize = 0;
-        let mut guard_pos: Option<(usize, usize)> = None;
-
-        for line in reader.lines() {
-            let line = line?;
-            let mut row = Vec::new();
-            for (col, char) in line.chars().enumerate() {
-                match char {
-                    '.' => row.push(TileState::Empty),
-                    '#' => row.push(TileState::Obstacle),
-                    other => match Heading::try_from(other) {
-                        Ok(heading) => {
-                            row.push(TileState::Occupied);
-                            guard_facing = heading;
-                            guard_pos = Some((col, current_row))
-                        }
-                        Err(_) => {
-                            Err(format!("Unrecognized character: '{}'", other))?;
-                        }
-                    },
-                }
-            }
-            rows.push(row);
-            current_row += 1;
-        }
-
-        Ok(PatrolState {
-            grid: Grid { tiles: rows },
-            guard: Some(Guard {
-                heading: guard_facing,
-                pos: guard_pos.ok_or("guard not found")?,
-            }),
-        })
-    }
-
-    fn guard_target_tile(&self) -> Option<(TileState, (usize, usize))> {
-        let Guard {
-            heading,
-            pos: (x, y),
-        } = self.guard?;
-        let (dx, dy) = heading.into();
-        let x2 = x.checked_add_signed(dx)?;
-        let y2 = y.checked_add_signed(dy)?;
-        let tile = self.grid.get(x2, y2)?;
-        Some((tile, (x2, y2)))
-    }
-
-    fn advance(&mut self) {
-            if let PatrolState {
-                grid,
-                guard:
-                    Some(Guard {
-                        heading,
-                        pos: (x, y),
-                    }),
-            } = self
-            {
-            if let Some((next_tile, x2, y2)) = next_guard_pos((*x, *y), *heading, grid) {
-                match next_tile {
-                    TileState::Empty | TileState::Visited => {
-                        // guard moves to that tile; current tile gets marked as visited
-                        grid.set(*x, *y, TileState::Visited);
-                        grid.set(x2, y2, TileState::Occupied);
-                        // self.guard = Some(Guard { heading, pos: (x2, y2) })
-                        *x = x2;
-                        *y = y2;
-                    }
-                    TileState::Obstacle => {
-                        // guard turns, but stays in place
-                        // self.guard = Some(Guard { heading: heading.turn_right(), pos: (x, y) });
-                        *heading = heading.turn_right();
-                    }
-                    TileState::Occupied => {
-                        panic!("guard somehow ran into itself!");
-                    }
-                }
-            } else {
-                // guard walked off the map!
-                grid.set(*x, *y, TileState::Visited);
-                self.guard = None
-            }
-        }
-    }
-}
-
-fn next_guard_pos((x, y): (usize, usize), heading: Heading, grid: &Grid) -> Option<(TileState, usize, usize)> {
+fn next_guard_pos(
+    (x, y): (usize, usize),
+    heading: Cardinal,
+    grid: &Grid<TileState>,
+) -> Option<(bool, usize, usize)> {
     let (dx, dy) = heading.into();
     let x2 = x.checked_add_signed(dx)?;
     let y2 = y.checked_add_signed(dy)?;
     let tile = grid.get(x2, y2)?;
-    Some((tile, x2, y2))
+    Some((tile.is_traversable(), x2, y2))
 }
