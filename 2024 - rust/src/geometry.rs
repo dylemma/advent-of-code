@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Write};
-use std::ops::{Add, AddAssign};
+use std::ops::{Add, AddAssign, Index, IndexMut};
 use colored::ColoredString;
 
 /// Represents one of the four cardinal directions
@@ -185,6 +185,81 @@ impl Default for CardinalSet {
     }
 }
 
+impl Index<Cardinal> for CardinalSet {
+    type Output = bool;
+
+    fn index(&self, index: Cardinal) -> &Self::Output {
+        match index {
+            Cardinal::North => &self.north,
+            Cardinal::East => &self.east,
+            Cardinal::South => &self.south,
+            Cardinal::West => &self.west,
+        }
+    }
+}
+
+impl IndexMut<Cardinal> for CardinalSet {
+    fn index_mut(&mut self, index: Cardinal) -> &mut Self::Output {
+        match index {
+            Cardinal::North => &mut self.north,
+            Cardinal::East => &mut self.east,
+            Cardinal::South => &mut self.south,
+            Cardinal::West => &mut self.west,
+        }
+    }
+}
+
+/// A "velocity" in cartesian space, to use with a `Grid`
+#[derive(Copy, Clone, Debug)]
+pub struct GridDelta(isize, isize);
+
+#[allow(unused)]
+impl GridDelta {
+    pub const UP: GridDelta = GridDelta(0, -1);
+    pub const DOWN: GridDelta = GridDelta(0, 1);
+    pub const LEFT: GridDelta = GridDelta(-1, 0);
+    pub const RIGHT: GridDelta = GridDelta(1, 0);
+    pub const UP_RIGHT: GridDelta = GridDelta(1, -1);
+    pub const UP_LEFT: GridDelta = GridDelta(-1, -1);
+    pub const DOWN_RIGHT: GridDelta = GridDelta(1, 1);
+    pub const DOWN_LEFT: GridDelta = GridDelta(-1, 1);
+
+    pub const CARDINALS_AND_DIAGONALS: [GridDelta; 8] = [
+        GridDelta::UP,
+        GridDelta::UP_RIGHT,
+        GridDelta::RIGHT,
+        GridDelta::DOWN_RIGHT,
+        GridDelta::DOWN,
+        GridDelta::DOWN_LEFT,
+        GridDelta::LEFT,
+        GridDelta::UP_LEFT,
+    ];
+
+    pub const DIAGONALS: [GridDelta; 4] = [
+        GridDelta::UP_RIGHT,
+        GridDelta::DOWN_RIGHT,
+        GridDelta::DOWN_LEFT,
+        GridDelta::UP_LEFT,
+    ];
+
+    pub fn inverted(&self) -> GridDelta {
+        GridDelta(-self.0, -self.1)
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct GridAddress(pub usize, pub usize);
+
+#[allow(unused)]
+impl GridAddress {
+    pub fn checked_add(&self, delta: GridDelta) -> Option<GridAddress> {
+        let GridDelta(dx, dy) = delta;
+        let x = self.0.checked_add_signed(dx)?;
+        let y = self.1.checked_add_signed(dy)?;
+        Some(GridAddress(x, y))
+    }
+}
+
 /// Simple cartesian grid where each cell is represented as a `Tile`
 #[derive(Clone, Debug)]
 pub struct Grid<Tile> {
@@ -202,6 +277,7 @@ impl<Tile: Default + Clone> Grid<Tile> {
     }
 }
 
+#[allow(unused)]
 impl<Tile> Grid<Tile> {
     pub fn get(&self, x: usize, y: usize) -> Option<&Tile> {
         let row = self.rows.get(y)?;
@@ -213,6 +289,14 @@ impl<Tile> Grid<Tile> {
         row.get_mut(x)
     }
 
+    pub fn get_at(&self, addr: GridAddress) -> Option<&Tile> {
+        self.get(addr.0, addr.1)
+    }
+
+    pub fn get_mut_at(&mut self, addr: GridAddress) -> Option<&mut Tile> {
+        self.get_mut(addr.0, addr.1)
+    }
+
     pub fn width(&self) -> usize {
         match self.rows.get(0) {
             Some(row) => row.len(),
@@ -222,6 +306,24 @@ impl<Tile> Grid<Tile> {
 
     pub fn height(&self) -> usize {
         self.rows.len()
+    }
+}
+
+impl <Tile> Index<GridAddress> for Grid<Tile> {
+    type Output = Tile;
+
+    fn index(&self, index: GridAddress) -> &Self::Output {
+        self.get_at(index).unwrap_or_else(|| {
+            panic!("Illegal address for grid: {:?}", index);
+        })
+    }
+}
+
+impl <Tile> IndexMut<GridAddress> for Grid<Tile> {
+    fn index_mut(&mut self, index: GridAddress) -> &mut Self::Output {
+        self.get_mut(index.0, index.1).unwrap_or_else(|| {
+            panic!("Illegal address for grid: {:?}", index);
+        })
     }
 }
 
