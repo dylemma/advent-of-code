@@ -213,6 +213,16 @@ impl<Tile> Grid<Tile> {
         row.get_mut(x)
     }
 
+    pub fn width(&self) -> usize {
+        match self.rows.get(0) {
+            Some(row) => row.len(),
+            None => 0,
+        }
+    }
+
+    pub fn height(&self) -> usize {
+        self.rows.len()
+    }
 }
 
 pub trait RenderTileChar<Tile> {

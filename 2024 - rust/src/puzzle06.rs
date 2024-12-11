@@ -1,7 +1,7 @@
 use crate::geometry::{Cardinal, CardinalSet, CharGrid, Grid, RenderTileChar};
 use crate::helper::GenResult;
 use colored::{ColoredString, Colorize};
-use log::{info, warn};
+use log::{debug, info};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::File;
@@ -15,35 +15,88 @@ pub fn run(input_path: &PathBuf) -> GenResult<()> {
         parse_input(&mut reader)?
     };
 
-    let mut patrol_state: PatrolState =
-        PatrolState::new(initial_grid.clone(), initial_guard.clone());
+    // Log the initial state
     info!(
         "Initial Grid:\n{}",
-        CharGrid(&patrol_state.grid, WithGuard(patrol_state.guard))
+        CharGrid(&initial_grid, WithGuard(Some(initial_guard)))
     );
 
-    let mut num_steps = 0u32;
-    while patrol_state.guard.is_some() {
-        num_steps += 1;
-        if num_steps > 100000 {
-            warn!("Exceeded 100k steps; aborting");
-            break;
-        }
+    // Run the patrol with the state as given
+    let (part1_state, part1_result) = run_patrol(initial_grid.clone(), initial_guard.clone());
+    {
+        let PatrolState { grid, guard, .. } = &part1_state;
+        info!(
+            "Part 1 patrol ended with {:?}:\n{}",
+            part1_result,
+            CharGrid(grid, WithGuard(guard.clone()))
+        );
+        info!(
+            "Visited {} tiles",
+            format!("{}", part1_state.num_traversed().to_string().yellow())
+        );
+    }
 
+    let mut num_loops = 0;
+    let mut num_tested = 0;
+    // for any tile along the path traversed in part 1, see if inserting an obstacle on that type would induce a cycle
+    for x in 0..initial_grid.width() {
+        for y in 0..initial_grid.height() {
+            if (x, y) != initial_guard.pos {
+                if part1_state.grid.get(x, y).unwrap().is_traversed() {
+                    num_tested += 1;
+                    let altered_grid = {
+                        let mut g = initial_grid.clone();
+                        let tile = g.get_mut(x, y).unwrap();
+                        *tile = TileState::ArtificialObstacle;
+                        g
+                    };
+                    let (patrol_state, result) = run_patrol(altered_grid, initial_guard.clone());
+                    match result {
+                        PatrolResult::LoopDetected => {
+                            // I want log output, but not log spam
+                            if num_loops == 0 {
+                                info!("First loop detected in \n{}", CharGrid(&patrol_state.grid, WithGuard(patrol_state.guard)));
+                            } else {
+                                debug!("Loop detected in:\n{}", CharGrid(&patrol_state.grid, WithGuard(patrol_state.guard)));
+                            }
+                            num_loops += 1;
+                        },
+                        _ => (),
+                    }
+                }
+            }
+        }
+    }
+    info!("Detected {} loop-inducing positions (out of {} attempts)", format!("{}", num_loops).cyan(), num_tested);
+
+    Ok(())
+}
+
+fn run_patrol(initial_grid: Grid<TileState>, initial_guard: Guard) -> (PatrolState, PatrolResult) {
+    let mut patrol_state = PatrolState::new(initial_grid, initial_guard);
+    let mut num_steps = 0u32;
+
+    while patrol_state.guard.is_some() && !patrol_state.detected_loop && num_steps < 100000 {
+        num_steps += 1;
         patrol_state.advance();
     }
 
-    info!(
-        "Grid after {} steps:\n{}",
-        num_steps,
-        CharGrid(&patrol_state.grid, WithGuard(patrol_state.guard))
-    );
-    info!(
-        "Visited {} tiles",
-        format!("{}", patrol_state.num_traversed().to_string().yellow())
-    );
+    let result = if patrol_state.guard.is_none() {
+        PatrolResult::WalkedOff
+    } else if patrol_state.detected_loop {
+        PatrolResult::LoopDetected
+    } else {
+        PatrolResult::Aborted
+    };
 
-    Ok(())
+    (patrol_state, result)
+}
+
+#[derive(Debug)]
+enum PatrolResult {
+    WalkedOff,
+    LoopDetected,
+    Aborted,
 }
 
 #[derive(Copy, Clone)]
@@ -74,6 +127,12 @@ impl TileState {
             TileState::Empty => true,
             TileState::Obstacle => false,
             TileState::ArtificialObstacle => false,
+        }
+    }
+    fn is_traversed(&self) -> bool {
+        match self {
+            TileState::Traversed(_) => true,
+            _ => false,
         }
     }
 }
@@ -220,7 +279,6 @@ impl PatrolState {
                         pos: (*x, *y),
                     };
                     if corners.contains(&corner) {
-                        info!("Detected loop @ {:?}", corner);
                         *detected_loop = true;
                     } else {
                         corners.insert(corner);
@@ -239,9 +297,8 @@ impl PatrolState {
         let mut count = 0;
         for row in &self.grid.rows {
             for cell in row {
-                match *cell {
-                    TileState::Traversed(_) => count += 1,
-                    _ => (),
+                if cell.is_traversed() {
+                    count += 1;
                 }
             }
         }
