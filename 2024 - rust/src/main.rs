@@ -6,6 +6,7 @@ mod puzzle04;
 mod puzzle05;
 mod puzzle06;
 mod geometry;
+mod puzzle07;
 
 use crate::helper::*;
 use env_logger::Builder;
@@ -58,6 +59,7 @@ fn main() -> GenResult<()> {
         4 => puzzle04::run(&puzzle_input_path)?,
         5 => puzzle05::run(&puzzle_input_path)?,
         6 => puzzle06::run(&puzzle_input_path)?,
+        7 => puzzle07::run(&puzzle_input_path)?,
         _ => error!("That puzzle isn't solved yet"),
     }
 
