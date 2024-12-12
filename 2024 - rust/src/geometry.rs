@@ -215,16 +215,16 @@ pub struct GridDelta(isize, isize);
 
 #[allow(unused)]
 impl GridDelta {
-    pub const UP: GridDelta = GridDelta(0, -1);
-    pub const DOWN: GridDelta = GridDelta(0, 1);
-    pub const LEFT: GridDelta = GridDelta(-1, 0);
-    pub const RIGHT: GridDelta = GridDelta(1, 0);
-    pub const UP_RIGHT: GridDelta = GridDelta(1, -1);
-    pub const UP_LEFT: GridDelta = GridDelta(-1, -1);
-    pub const DOWN_RIGHT: GridDelta = GridDelta(1, 1);
-    pub const DOWN_LEFT: GridDelta = GridDelta(-1, 1);
+    pub const UP: Self = Self(0, -1);
+    pub const DOWN: Self = Self(0, 1);
+    pub const LEFT: Self = Self(-1, 0);
+    pub const RIGHT: Self = Self(1, 0);
+    pub const UP_RIGHT: Self = Self(1, -1);
+    pub const UP_LEFT: Self = Self(-1, -1);
+    pub const DOWN_RIGHT: Self = Self(1, 1);
+    pub const DOWN_LEFT: Self = Self(-1, 1);
 
-    pub const CARDINALS_AND_DIAGONALS: [GridDelta; 8] = [
+    pub const CARDINALS_AND_DIAGONALS: [Self; 8] = [
         GridDelta::UP,
         GridDelta::UP_RIGHT,
         GridDelta::RIGHT,
@@ -235,15 +235,32 @@ impl GridDelta {
         GridDelta::UP_LEFT,
     ];
 
-    pub const DIAGONALS: [GridDelta; 4] = [
+    pub const DIAGONALS: [Self; 4] = [
         GridDelta::UP_RIGHT,
         GridDelta::DOWN_RIGHT,
         GridDelta::DOWN_LEFT,
         GridDelta::UP_LEFT,
     ];
 
-    pub fn inverted(&self) -> GridDelta {
+    pub fn inverted(&self) -> Self {
         GridDelta(-self.0, -self.1)
+    }
+
+    pub fn vector_between(start: GridAddress, end: GridAddress) -> Self {
+        let GridAddress(ax, ay) = start;
+        let GridAddress(bx, by) = end;
+
+        let dx_abs = bx.abs_diff(ax);
+        let dy_abs = by.abs_diff(ay);
+
+        let dx =
+            if bx > ax { dx_abs as isize }
+            else { -(dx_abs as isize) };
+        let dy =
+            if by > ay { dy_abs as isize }
+            else { -(dy_abs as isize) };
+
+        Self(dx, dy)
     }
 }
 
