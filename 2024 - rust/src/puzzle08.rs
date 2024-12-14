@@ -37,7 +37,7 @@ pub fn run(input_path: &Path) -> GenResult<()> {
 
     let p1_grid = {
         let mut grid = input_grid.clone();
-        for (c, addresses) in positions.iter() {
+        for (_, addresses) in positions.iter() {
             project_all_antinodes(addresses, |antinode_pos| {
                 if let Some(tile) = grid.get_mut_at(antinode_pos) {
                     tile.has_antinode = true;
@@ -51,7 +51,7 @@ pub fn run(input_path: &Path) -> GenResult<()> {
 
     let p2_grid = {
         let mut grid = input_grid.clone();
-        for (c, addresses) in positions.iter() {
+        for (_, addresses) in positions.iter() {
             project_further_antinodes(addresses, |antinode_pos| {
                 if let Some(tile) = grid.get_mut_at(antinode_pos) {
                     tile.has_antinode = true;
