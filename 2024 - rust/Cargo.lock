@@ -26,6 +26,7 @@ dependencies = [
  "log",
  "regex",
  "reqwest",
+ "utf8-chars",
 ]
 
 [[package]]
@@ -85,6 +86,12 @@ dependencies = [
  "anstyle",
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "arrayvec"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "atomic-waker"
@@ -1306,6 +1313,15 @@ name = "utf16_iter"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8232dd3cdaed5356e0f716d285e4b40b932ac434100fe9b7e0e8e935b9e6246"
+
+[[package]]
+name = "utf8-chars"
+version = "3.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f598f797138b219a4560b4e9c53c255e872e267c9e3fdcc75aa59a2a90953bcd"
+dependencies = [
+ "arrayvec",
+]
 
 [[package]]
 name = "utf8_iter"
