@@ -1,6 +1,6 @@
 use crate::helper::GenResult;
 use colored::Colorize;
-use log::info;
+use log::{debug, info};
 use std::collections::LinkedList;
 use std::fmt::{Debug, Write};
 use std::fs::File;
@@ -11,15 +11,20 @@ use utf8_chars::BufReadCharsExt;
 pub fn run(input_path: &Path) -> GenResult<()> {
     let mut fs = parse_input(input_path)?;
 
+    let mut segments_v2 = fs.unformatted.iter().cloned().collect::<Vec<_>>();
+
     info!("Start: {:?}", fs);
     defrag(&mut fs);
     info!("End: {:?}", fs);
-    let part1_sum = checksum(&fs);
+    let part1_sum = checksum(&fs.formatted);
     info!("Part 1 Checksum: {}", part1_sum);
+
+    fill_v2(&segments_v2);
 
     Ok(())
 }
 
+#[derive(Clone)]
 struct Segment {
     id: usize,
     length: usize,
@@ -53,15 +58,12 @@ fn parse_input(input_path: &Path) -> GenResult<Filesystem> {
     let mut id = 0;
 
     while let Some(c) = itr.next() {
-        let length = {
-            c.to_digit(10).ok_or(format!("not a digit: {}", c))? as usize
+        let length = { c.to_digit(10).ok_or(format!("not a digit: {}", c))? as usize };
+        let gap = if let Some(c2) = itr.next() {
+            c2.to_digit(10).ok_or(format!("not a digit: {}", c2))? as usize
+        } else {
+            0
         };
-        let gap =
-            if let Some(c2) = itr.next() {
-                c2.to_digit(10).ok_or(format!("not a digit: {}", c2))? as usize
-            } else {
-                0
-            };
         out.push_back(Segment { id, length, gap });
         id += 1;
     }
@@ -111,10 +113,10 @@ fn fill_gap(gap: usize, fs: &mut Filesystem) {
     }
 }
 
-fn checksum(fs: &Filesystem) -> usize {
+fn checksum(segments: &Vec<Segment>) -> usize {
     let mut i = 0;
     let mut accum = 0;
-    for seg in fs.formatted.iter() {
+    for seg in segments.iter() {
         for d in 0..seg.length {
             accum += (i + d) * seg.id;
         }
@@ -122,3 +124,98 @@ fn checksum(fs: &Filesystem) -> usize {
     }
     accum
 }
+
+#[derive(Debug)]
+struct Gap {
+    offset: usize,
+    width: usize,
+}
+
+#[derive(Debug)]
+struct SegmentV2 {
+    id: usize,
+    offset: usize,
+    width: usize,
+}
+
+fn fill_v2(segments: &Vec<Segment>) {
+    // represent the filesystem as an arbitrarily-ordered collection of SegmentV2,
+    // where each item tracks its own `offset` from the start of the filesystem,
+    let mut segments_v2 = {
+        let mut out = Vec::new();
+
+        let mut accum_offset = 0;
+        for seg in segments {
+            out.push(SegmentV2 {
+                id: seg.id,
+                offset: accum_offset,
+                width: seg.length,
+            });
+            accum_offset += seg.length + seg.gap;
+        }
+
+        out
+    };
+
+    info!("segments v2: {:?}", segments_v2);
+
+    // Also represent the gaps between items in the filesystem. For the part 2
+    // algorithm, each segment will need to search the `gaps` for one wide enough.
+    let mut gaps = {
+        let mut accum_offset = 0;
+        let mut out = Vec::new();
+        for seg in segments {
+            accum_offset += seg.length;
+            if seg.gap > 0 {
+                out.push(Gap {
+                    offset: accum_offset,
+                    width: seg.gap,
+                });
+            }
+            accum_offset += seg.gap;
+        }
+        out
+    };
+
+    info!("gaps: {:?}", gaps);
+
+    for seg in segments_v2.iter_mut().rev() {
+        if let Some(gap_index) = gaps
+            .iter_mut()
+            .take_while(|g| g.offset < seg.offset)
+            .position(|g| g.width >= seg.width)
+        {
+            let gap = &mut gaps[gap_index];
+            // the segment can be moved into the gap
+            debug!("{:?} can fit in {:?}", seg, gap);
+            if gap.width > seg.width {
+                debug!("gap shrinks by {}", seg.width);
+                seg.offset = gap.offset;
+                gap.offset += seg.width;
+                gap.width -= seg.width;
+            } else {
+                debug!("gap closed");
+                seg.offset = gap.offset;
+                gaps.remove(gap_index);
+            }
+        }
+    }
+
+    segments_v2.sort_by_key(|seg| seg.offset);
+    info!("final segments: {:?}", segments_v2);
+
+    let checksum = {
+        let mut accum = 0;
+        for seg in segments_v2 {
+            for j in 0..seg.width {
+                let i = seg.offset + j;
+                accum += i * seg.id;
+            }
+        }
+        accum
+    };
+    info!("part 2 checksum: {}", checksum);
+
+}
+
+// fn find_gap(segments: &Vec<Segment>, width: usize, max_offset: usize) -> usize {}
