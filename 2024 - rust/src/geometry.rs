@@ -224,6 +224,13 @@ impl GridDelta {
     pub const DOWN_RIGHT: Self = Self(1, 1);
     pub const DOWN_LEFT: Self = Self(-1, 1);
 
+    pub const CARDINALS: [Self; 4] = [
+        GridDelta::UP,
+        GridDelta::RIGHT,
+        GridDelta::DOWN,
+        GridDelta::LEFT,
+    ];
+
     pub const CARDINALS_AND_DIAGONALS: [Self; 8] = [
         GridDelta::UP,
         GridDelta::UP_RIGHT,
@@ -264,7 +271,7 @@ impl GridDelta {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct GridAddress(pub usize, pub usize);
 
 #[allow(unused)]

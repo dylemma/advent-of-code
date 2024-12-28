@@ -9,6 +9,7 @@ mod geometry;
 mod puzzle07;
 mod puzzle08;
 mod puzzle09;
+mod puzzle10;
 
 use crate::helper::*;
 use env_logger::Builder;
@@ -18,7 +19,9 @@ use std::env;
 fn main() -> GenResult<()> {
     let mut args = env::args().skip(1);
 
-    let puzzle_num = args.next().ok_or("Expected puzzle number")?.parse::<u32>()?;
+    let puzzle_num = args.next().ok_or("Expected puzzle number")?.parse::<u32>().map_err(|err| {
+        format!("Expected a puzzle number, but got a parsing error: {}", err)
+    })?;
 
     let mut log_level_filter = LevelFilter::Info;
     let mut is_example_input = false;
@@ -64,6 +67,7 @@ fn main() -> GenResult<()> {
         7 => puzzle07::run(&puzzle_input_path)?,
         8 => puzzle08::run(&puzzle_input_path)?,
         9 => puzzle09::run(&puzzle_input_path)?,
+        10 => puzzle10::run(&puzzle_input_path)?,
         _ => error!("That puzzle isn't solved yet"),
     }
 

@@ -11,7 +11,7 @@ use utf8_chars::BufReadCharsExt;
 pub fn run(input_path: &Path) -> GenResult<()> {
     let mut fs = parse_input(input_path)?;
 
-    let mut segments_v2 = fs.unformatted.iter().cloned().collect::<Vec<_>>();
+    let segments_v2 = fs.unformatted.iter().cloned().collect::<Vec<_>>();
 
     info!("Start: {:?}", fs);
     defrag(&mut fs);
