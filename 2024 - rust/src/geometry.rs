@@ -1,6 +1,6 @@
+use colored::ColoredString;
 use std::fmt::{Display, Formatter, Write};
 use std::ops::{Add, AddAssign, Index, IndexMut};
-use colored::ColoredString;
 
 /// Represents one of the four cardinal directions
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -42,6 +42,13 @@ impl Cardinal {
             Cardinal::West => Cardinal::East,
         }
     }
+
+    pub const ALL: [Cardinal; 4] = [
+        Cardinal::North,
+        Cardinal::East,
+        Cardinal::South,
+        Cardinal::West,
+    ];
 }
 
 impl Into<(isize, isize)> for Cardinal {
@@ -52,6 +59,13 @@ impl Into<(isize, isize)> for Cardinal {
             Cardinal::South => (0, 1),
             Cardinal::West => (-1, 0),
         }
+    }
+}
+
+impl Into<GridDelta> for Cardinal {
+    fn into(self) -> GridDelta {
+        let (dx, dy) = self.into();
+        GridDelta(dx, dy)
     }
 }
 
@@ -97,6 +111,10 @@ impl CardinalSet {
     #[allow(unused)]
     pub fn is_empty(&self) -> bool {
         !(self.north || self.east || self.south || self.west)
+    }
+
+    pub fn len(&self) -> usize {
+        self.north as usize + self.east as usize + self.south as usize + self.west as usize
     }
 
     /// Checks if a given cardinal direction is contained in this set
@@ -260,12 +278,16 @@ impl GridDelta {
         let dx_abs = bx.abs_diff(ax);
         let dy_abs = by.abs_diff(ay);
 
-        let dx =
-            if bx > ax { dx_abs as isize }
-            else { -(dx_abs as isize) };
-        let dy =
-            if by > ay { dy_abs as isize }
-            else { -(dy_abs as isize) };
+        let dx = if bx > ax {
+            dx_abs as isize
+        } else {
+            -(dx_abs as isize)
+        };
+        let dy = if by > ay {
+            dy_abs as isize
+        } else {
+            -(dy_abs as isize)
+        };
 
         Self(dx, dy)
     }
@@ -333,7 +355,7 @@ impl<Tile> Grid<Tile> {
     }
 }
 
-impl <Tile> Index<GridAddress> for Grid<Tile> {
+impl<Tile> Index<GridAddress> for Grid<Tile> {
     type Output = Tile;
 
     fn index(&self, index: GridAddress) -> &Self::Output {
@@ -343,7 +365,7 @@ impl <Tile> Index<GridAddress> for Grid<Tile> {
     }
 }
 
-impl <Tile> IndexMut<GridAddress> for Grid<Tile> {
+impl<Tile> IndexMut<GridAddress> for Grid<Tile> {
     fn index_mut(&mut self, index: GridAddress) -> &mut Self::Output {
         self.get_mut(index.0, index.1).unwrap_or_else(|| {
             panic!("Illegal address for grid: {:?}", index);
@@ -359,8 +381,10 @@ pub trait RenderTileChar<Tile> {
 /// based on some style defined by a custom `style: S`.
 pub struct CharGrid<'g, Tile, Style>(pub &'g Grid<Tile>, pub Style);
 
-impl <'g, Tile, C> Display for CharGrid<'g, Tile, C>
-where C: RenderTileChar<Tile> {
+impl<'g, Tile, C> Display for CharGrid<'g, Tile, C>
+where
+    C: RenderTileChar<Tile>,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for (y, row) in self.0.rows.iter().enumerate() {
             for (x, tile) in row.iter().enumerate() {
@@ -371,4 +395,3 @@ where C: RenderTileChar<Tile> {
         Ok(())
     }
 }
-
