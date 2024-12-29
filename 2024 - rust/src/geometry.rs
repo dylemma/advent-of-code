@@ -293,7 +293,7 @@ impl GridDelta {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct GridAddress(pub usize, pub usize);
 
 #[allow(unused)]
