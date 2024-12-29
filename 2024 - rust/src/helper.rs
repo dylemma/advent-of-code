@@ -6,7 +6,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-pub type GenResult<A> = Result<A, Box<dyn Error>>;
+pub type GenError = Box<dyn Error>;
+pub type GenResult<A> = Result<A, GenError>;
 
 pub fn get_input(day: u32) -> GenResult<PathBuf> {
     let mut parent = env::current_dir().unwrap();
