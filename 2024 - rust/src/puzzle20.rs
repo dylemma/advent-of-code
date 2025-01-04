@@ -2,8 +2,8 @@ use crate::geometry::{Cardinal, Grid, GridAddress};
 use crate::helper::GenResult;
 use colored::Colorize;
 use log::{debug, info, trace};
-use pathfinding::prelude::{astar, dfs};
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use pathfinding::prelude::dfs;
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter, Write};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -12,7 +12,7 @@ use std::path::Path;
 pub fn run(input_path: &Path, is_example: bool) -> GenResult<()> {
     let track = {
         let file = File::open(input_path)?;
-        let mut reader = BufReader::new(file);
+        let reader = BufReader::new(file);
         let mut start = GridAddress::default();
         let mut end = GridAddress::default();
         let mut rows = Vec::new();
@@ -55,10 +55,18 @@ pub fn run(input_path: &Path, is_example: bool) -> GenResult<()> {
     debug!("Path: {:?}", path);
 
     let p1_skips = count_skips(&path, p1_threshold, p1_duration);
-    info!("Part 1: found {} skips that save at least {}ps", p1_skips.to_string().green(), p1_threshold);
+    info!(
+        "Part 1: found {} skips that save at least {}ps",
+        p1_skips.to_string().green(),
+        p1_threshold
+    );
 
     let p2_skips = count_skips(&path, p2_threshold, p2_duration);
-    info!("Part 2: found {} skips that save at least {}ps", p2_skips.to_string().bright_blue(), p2_threshold);
+    info!(
+        "Part 2: found {} skips that save at least {}ps",
+        p2_skips.to_string().bright_blue(),
+        p2_threshold
+    );
 
     Ok(())
 }
@@ -135,8 +143,13 @@ fn count_skips(path: &Vec<GridAddress>, threshold: usize, max_skip_duration: usi
             let abs_dy = start.1.abs_diff(end.1);
             let dist = abs_dx + abs_dy;
             let time_saved = j - i - dist;
-            if dist <= max_skip_duration && time_saved >= threshold{
-                trace!("Found skip from {:?} to {:?}, saving {} ps", start, end, time_saved);
+            if dist <= max_skip_duration && time_saved >= threshold {
+                trace!(
+                    "Found skip from {:?} to {:?}, saving {} ps",
+                    start,
+                    end,
+                    time_saved
+                );
                 count += 1;
                 *counts_by_savings.entry(time_saved).or_default() += 1;
             }
