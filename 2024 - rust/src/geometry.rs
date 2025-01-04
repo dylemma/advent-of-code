@@ -227,6 +227,17 @@ impl IndexMut<Cardinal> for CardinalSet {
     }
 }
 
+impl From<GridDelta> for CardinalSet {
+    fn from(value: GridDelta) -> Self {
+        let mut out = Self::default();
+        if value.0 > 0 { out.east = true; }
+        if value.0 < 0 { out.west = true; }
+        if value.1 > 0 { out.south = true; }
+        if value.1 < 0 { out.north = true; }
+        out
+    }
+}
+
 /// A "velocity" in cartesian space, to use with a `Grid`
 #[derive(Copy, Clone, Debug)]
 pub struct GridDelta(isize, isize);
