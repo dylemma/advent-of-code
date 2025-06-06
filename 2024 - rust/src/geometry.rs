@@ -315,6 +315,10 @@ impl GridAddress {
         let y = self.1.checked_add_signed(dy)?;
         Some(GridAddress(x, y))
     }
+
+    pub fn manhatten_distance_to(&self, there: &GridAddress) -> usize {
+        self.0.abs_diff(there.0) + self.1.abs_diff(there.1)
+    }
 }
 
 /// Simple cartesian grid where each cell is represented as a `Tile`
