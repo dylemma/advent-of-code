@@ -4,7 +4,7 @@ import ch.qos.logback.classic.{ Level, LoggerContext }
 import org.slf4j.{ Logger, LoggerFactory }
 
 trait Logging {
-	protected lazy val log: Logger = LoggerFactory.getLogger(getClass)
+	protected lazy val log: Logger = LoggerFactory.getLogger(getClass.getName.filterNot(_ == '$'))
 }
 
 object Logging {
