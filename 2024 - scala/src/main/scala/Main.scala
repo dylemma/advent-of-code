@@ -12,6 +12,7 @@ object Main extends Logging {
 
 		val solution: Solution = day match {
 			case 21 => solutions.Solution21
+			case 22 => solutions.Solution22
 			case _ =>
 				log.warn(s"No solution implemented for day $day")
 				sys.exit(2)

@@ -20,7 +20,7 @@ object Inputs extends Logging {
 	  * @return The puzzle input as a String
 	  */
 	def getInput(day: Int): String = {
-		val inputPath = Paths.get(InputsFilePath, inputFileName(day)).toAbsolutePath
+		val inputPath = Paths.get(InputsFilePath, inputFileName(day)).toAbsolutePath.normalize
 		if (Files.exists(inputPath)) {
 			log.info(s"Reading input from $inputPath")
 			Files.readString(inputPath).trim
@@ -35,7 +35,7 @@ object Inputs extends Logging {
 	}
 
 	private def getSessionCookie: String = {
-		val sessionPath = Paths.get(InputsFilePath, SessionCookieFileName).toAbsolutePath
+		val sessionPath = Paths.get(InputsFilePath, SessionCookieFileName).toAbsolutePath.normalize
 		log.debug(s"Reading session cookie from $sessionPath")
 		if (!Files.exists(sessionPath)) {
 			throw new RuntimeException(s"Session cookie not found at $sessionPath")
