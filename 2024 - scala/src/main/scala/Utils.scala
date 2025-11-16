@@ -31,4 +31,15 @@ object Utils {
 			(A.plus(accA, a), B.plus(accB, b))
 		}
 
+	trait StringDecoder[A]:
+		def unapply(raw: String): Option[A]
+		def typeName: String
+		def apply(raw: String): A = unapply(raw).getOrElse {
+			throw new IllegalArgumentException(s"Invalid $typeName: '$raw'")
+		}
+	object StringDecoder:
+		def apply[A](_typeName: String, f: PartialFunction[String, A]): StringDecoder[A] =
+			new StringDecoder[A]:
+				val typeName: String = _typeName
+				def unapply(raw: String): Option[A] = f.unapply(raw)
 }

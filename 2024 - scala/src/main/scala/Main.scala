@@ -14,6 +14,7 @@ object Main extends Logging {
 			case 21 => solutions.Solution21
 			case 22 => solutions.Solution22
 			case 23 => solutions.Solution23
+			case 24 => solutions.Solution24
 			case _ =>
 				log.warn(s"No solution implemented for day $day")
 				sys.exit(2)
