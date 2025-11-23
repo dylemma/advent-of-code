@@ -1,5 +1,5 @@
 package io.dylemma.aoc
-package solutions
+package solutions.y2024
 
 import Utils.AsTuple2
 

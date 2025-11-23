@@ -1,5 +1,5 @@
 package io.dylemma.aoc
-package solutions
+package solutions.y2024
 
 object Solution25 extends Solution.NoArgs with Logging {
 	def run(input: String): Unit = {

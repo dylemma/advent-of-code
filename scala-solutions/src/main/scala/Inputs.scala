@@ -1,13 +1,16 @@
 package io.dylemma.aoc
 
+import Utils.AsInt
+
 import java.net.URI
 import java.net.http.HttpResponse.BodyHandlers
 import java.net.http.{ HttpRequest, HttpResponse }
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Paths }
+import java.time.{ Instant, OffsetDateTime }
 
 object Inputs extends Logging {
-	private val InputsFilePath = "./inputs"
+	val InputsFilePath = "./inputs"
 	private val ExampleInputsResourcePath = "/example-inputs"
 	private val SessionCookieFileName = "session.txt"
 	private def inputFileName(day: Int): String = s"day$day.txt"
@@ -19,14 +22,14 @@ object Inputs extends Logging {
 	  * @param day The day number (1-25)
 	  * @return The puzzle input as a String
 	  */
-	def getInput(day: Int): String = {
-		val inputPath = Paths.get(InputsFilePath, inputFileName(day)).toAbsolutePath.normalize
+	def getInput(year: Int, day: Int): String = {
+		val inputPath = Paths.get(InputsFilePath, s"$year", inputFileName(day)).toAbsolutePath.normalize
 		if (Files.exists(inputPath)) {
 			log.info(s"Reading input from $inputPath")
 			Files.readString(inputPath).trim
 		} else {
 			log.info(s"Downloading input for day $day...")
-			val input = downloadInput(day)
+			val input = downloadInput(year, day)
 			Files.createDirectories(inputPath.getParent)
 			log.debug(s"Saving input to $inputPath")
 			Files.writeString(inputPath, input)
@@ -43,10 +46,10 @@ object Inputs extends Logging {
 		Files.readString(sessionPath).trim
 	}
 
-	private def downloadInput(day: Int): String = {
+	private def downloadInput(year: Int, day: Int): String = {
 		val session = getSessionCookie
 		val req = HttpRequest
-			.newBuilder(URI.create(s"https://adventofcode.com/2024/day/$day/input"))
+			.newBuilder(URI.create(s"https://adventofcode.com/$year/day/$day/input"))
 			.header("Cookie", s"session=$session")
 			.header("User-Agent", "@dylemma AdventOfCode 2024 Scala")
 			.GET
@@ -66,12 +69,13 @@ object Inputs extends Logging {
 	  * @param day The day number (1-25)
 	  * @return The example puzzle input as a String
 	  */
-	def getExampleInput(day: Int): String = {
-		getClass.getResourceAsStream(s"$ExampleInputsResourcePath/${ inputFileName(day) }") match {
+	def getExampleInput(year: Int, day: Int): String = {
+		getClass.getResourceAsStream(s"$ExampleInputsResourcePath/$year/${ inputFileName(day) }") match {
 			case null => throw new RuntimeException(s"Example input for day $day not found")
 			case stream =>
 				log.info(s"Reading example input for day $day from resources")
 				new String(stream.readAllBytes(), StandardCharsets.UTF_8).trim
 		}
 	}
+	
 }
