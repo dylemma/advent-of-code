@@ -22,7 +22,10 @@ object Solution09 extends Solution with Logging {
 
 		log.debug(s"Parsed inputs: $inputHistories")
 
-		new Part1().run(inputHistories)
+		val (shouldRunPart1, shouldRunPart2) = partsToRun(args)
+		
+		if shouldRunPart1 then runPart1(inputHistories)
+		if shouldRunPart2 then runPart2(inputHistories)
 	}
 
 	case class History(numbers: Vector[Long]):
@@ -31,6 +34,7 @@ object Solution09 extends Solution with Logging {
 		def allZero = numbers.forall(_ == 0L)
 
 		def appendWithDiff(diff: Long) = History(numbers :+ (numbers.last + diff))
+		def prependWithDiff(diff: Long) = History((numbers.head - diff) +: numbers)
 
 		def derivative: History = numbers
 			.slidingPairs
@@ -58,27 +62,23 @@ object Solution09 extends Solution with Logging {
 				val diffForParent = derivative.appendWithDiff(bottomDiff).numbers.last
 				parent.extendAsHistory(diffForParent)
 		}
+		
+		def extendLeftAsChain(bottomDiff: Long): HistoryChain = this match {
+			case Top(history) => Top(history.prependWithDiff(bottomDiff))
+			case Derived(derivative, parent) =>
+				val extendedDerivative = derivative.prependWithDiff(bottomDiff)
+				val diffForParent = extendedDerivative.numbers.head
+				Derived(extendedDerivative, parent.extendLeftAsChain(diffForParent))
+		}
 
 		def top: History = this match {
 			case Top(history) => history
 			case Derived(_, parent) => parent.top
 		}
 	}
-
-	class Part1 {
-		def run(histories: List[History]): Unit = {
-			val sum = (for (history <- histories.iterator) yield {
-				log.debug(s"History: $history")
-
-				val extended = buildChain(history).extendAsHistory(0)
-				log.debug(s"Extended: $extended")
-
-				extended.numbers.last
-			}).sum
-			log.info(s"Part 1: sum of extended histories is $sum")
-		}
-
-		def buildChain(history: History): HistoryChain = {
+	
+	object HistoryChain {
+		def from(history: History): HistoryChain = {
 			@tailrec
 			def loop(parent: HistoryChain, current: History): HistoryChain = {
 				val derivative = current.derivative
@@ -91,5 +91,29 @@ object Solution09 extends Solution with Logging {
 
 			loop(HistoryChain.Top(history), history)
 		}
+	}
+
+	def runPart1(histories: List[History]): Unit = {
+		val sum = (for (history <- histories.iterator) yield {
+			log.debug(s"History: $history")
+
+			val extended = HistoryChain.from(history).extendAsHistory(0)
+			log.debug(s"Extended: $extended")
+
+			extended.numbers.last
+		}).sum
+		log.info(s"Part 1: sum of extended histories is $sum")
+	}
+	
+	def runPart2(histories: List[History]): Unit = {
+		val sum = (for (history <- histories.iterator) yield {
+			log.debug(s"History: $history")
+
+			val extended = HistoryChain.from(history).extendLeftAsChain(0)//.top
+			log.debug(s"Extended left: $extended")
+
+			extended.top.numbers.head
+		}).sum
+		log.info(s"Part 2: sum of left-extended histories is $sum")
 	}
 }
