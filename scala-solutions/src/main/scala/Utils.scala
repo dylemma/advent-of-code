@@ -20,6 +20,9 @@ object Utils {
 				a <- it.nextOption()
 				b <- it.nextOption()
 			} yield (a, b)
+			
+	extension [A](it: IterableOnce[A])
+		def slidingPairs: Iterator[(A, A)] = it.iterator.sliding(2).flatMap(AsTuple2.unapply)
 
 	extension [A, B](coll: Iterable[(A, B)])(using A: Numeric[A], B: Numeric[B])
 		@targetName("sumTuplesIterable")
