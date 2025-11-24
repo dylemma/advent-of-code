@@ -12,9 +12,9 @@ object Main extends Logging {
 
 	def main(args: Array[String]): Unit = {
 
-		val (cliArgs, puzzleArgs) = args.span(_ != "--")
+		val (rawCliArgs, puzzleArgs) = args.span(_ != "--")
 
-		for (cliArgs <- CliArgs.parse(args)) {
+		for (cliArgs <- CliArgs.parse(rawCliArgs)) {
 			// reconfigure logging if the CLI requested debug logging
 			if (cliArgs.isDebugEnabled) {
 				Logging.setRootLevel(Level.DEBUG)
