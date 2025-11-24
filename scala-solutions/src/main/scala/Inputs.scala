@@ -13,7 +13,7 @@ object Inputs extends Logging {
 	val InputsFilePath = "./inputs"
 	private val ExampleInputsResourcePath = "/example-inputs"
 	private val SessionCookieFileName = "session.txt"
-	private def inputFileName(day: Int): String = s"day$day.txt"
+	private def inputFileName(day: Int): String = f"day$day%02d.txt"
 
 	/** Get or download the (real) puzzle input for the given day.
 	  *

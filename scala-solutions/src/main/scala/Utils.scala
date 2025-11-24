@@ -42,4 +42,10 @@ object Utils {
 			new StringDecoder[A]:
 				val typeName: String = _typeName
 				def unapply(raw: String): Option[A] = f.unapply(raw)
+				
+	case class Reverse[A](value: A)
+	object Reverse:
+		given [A](using ord: Ordering[A]): Ordering[Reverse[A]] with
+			def compare(x: Reverse[A], y: Reverse[A]): Int =
+				ord.compare(y.value, x.value)
 }
