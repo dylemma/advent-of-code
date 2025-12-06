@@ -20,6 +20,7 @@ object Utils {
 				a <- it.nextOption()
 				b <- it.nextOption()
 			} yield (a, b)
+		def unapply[A](array: Array[A]): Option[(A, A)] = unapply(array.view)
 
 	extension [A](it: IterableOnce[A])
 		def slidingPairs: Iterator[(A, A)] = it.iterator.sliding(2).flatMap(AsTuple2.unapply)
