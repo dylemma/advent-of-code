@@ -1,0 +1,2 @@
+# some solutions can output SVG files here depending on their CLI args
+*.svg

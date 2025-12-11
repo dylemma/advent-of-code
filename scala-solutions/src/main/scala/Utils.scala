@@ -34,6 +34,13 @@ object Utils {
 		def sumTuples: (A, B) = it.foldLeft((A.zero, B.zero)) { case ((accA, accB), (a, b)) =>
 			(A.plus(accA, a), B.plus(accB, b))
 		}
+		
+	extension [A](list: List[A])
+		def distinctPairs: Iterator[(A, A)]	= for {
+			tail <- list.tails
+			a <- tail.headOption.iterator
+			b <- tail.tail.iterator
+		} yield (a, b)
 
 	trait StringDecoder[A]:
 		def unapply(raw: String): Option[A]
